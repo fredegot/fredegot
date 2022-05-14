@@ -1,0 +1,248 @@
+---
+title: "Untitled"
+author: "Author Person"
+date: "November 26, 2018"
+output:
+  html_document:
+    df_print: paged
+  pdf_document:
+    keep_tex: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
+library(kableExtra)
+library(table1)
+library(stargazer)
+```
+
+## R Markdown
+
+
+```{r cars}
+
+df <- read_csv("C:/Users/frede/Desktop/thesis/Thesis sheets - Main data (1).csv",
+               col_types = cols(.default = col_guess()
+               )) %>% slice(1:920)
+
+# rename for data manipulation and select variabels
+colnames(df)[1] <- "year"; colnames(df)[2] <- "name"; colnames(df)[3] <- "country"; colnames(df)[4] <- "region"; colnames(df)[5] <- "industry"; colnames(df)[8] <- "tei"; colnames(df)[9] <- "tec"; colnames(df)[19] <- "esgcomb"; colnames(df)[20] <- "env"; colnames(df)[21] <- "soc"; colnames(df)[24] <- "gdpgrowth"; colnames(df)[25] <- "gdppercap"; colnames(df)[26] <- "profits"; colnames(df)[27] <- "assets"; colnames(df)[28] <- "revenue"; colnames(df)[29] <- "rnd"; colnames(df)[30] <- "liabilities"; colnames(df)[31] <- "se"; colnames(df)[32] <- "leverage"; colnames(df)[33] <- "debtratio";colnames(df)[22] <- "gov"
+
+df <- df %>% select(year, name, country, region, industry, tei, tec, esgcomb, env,soc,gov,gdpgrowth,gdppercap,profits,assets, revenue, rnd,liabilities,se,leverage,debtratio)
+
+df <- df[c(1,2,3,5,4,7,6,8:13,20,21,17,14,15,16,18,19)]
+
+colnames(df)[1] <- "Year";colnames(df)[2] <- "Company";colnames(df)[3] <- "Country";colnames(df)[4] <- "Industry";colnames(df)[5] <- "Region";colnames(df)[7] <- "TEI";colnames(df)[6] <- "TEC";colnames(df)[12] <- "GDP growth";colnames(df)[13] <- "GDP";colnames(df)[14] <- "Leverage";colnames(df)[15] <- "Debt ratio";colnames(df)[17] <- "Profit";colnames(df)[18] <- "Assets";colnames(df)[19] <- "Revenue";colnames(df)[16] <- "RnD";colnames(df)[20] <- "Liabilities";colnames(df)[21] <- "SE";colnames(df)[8] <- "ESG";colnames(df)[9] <- "Env.";colnames(df)[11] <- "Gov.";colnames(df)[10] <- "Soc."
+
+attach(df)
+
+df <- df %>% mutate(Size = log(Assets))
+df <- df %>% mutate(SE_log = log(SE))
+df <- df %>% mutate(Profitability = Profit/Assets)
+df <- df %>% mutate(GDP_log = log(GDP))
+df <- df %>% mutate(RnD_int = RnD/Assets)
+df <- df %>% mutate(Revenue_log = log(Revenue))
+df <- df %>% mutate(Liabilities_log = log(Liabilities))
+
+# Setting standard theme for ggplot
+theme_set(theme_classic() +
+            theme(legend.position = "bottom",
+                  legend.box.spacing = unit(-0.4, "cm"),
+                  legend.margin = margin(6, 6, 6, 6),
+                  legend.title = element_blank(),
+            ))
+
+
+
+# Summarizing the tei data
+timetei <- df %>% select(Year, Region, TEI) %>% group_by(Year, Region) %>% 
+  summarise(tei_mean = round(mean(TEI, na.rm = TRUE), 2))  %>%  
+  mutate(Region = case_when(grepl("0", Region) ~ "Europe",
+                            grepl("1", Region, ignore.case = TRUE) ~"North America"))
+
+timetei2 <- df %>% select(Year, TEI) %>% group_by(Year) %>% 
+  summarise(tei_mean = round(mean(TEI, na.rm = TRUE), 2))
+
+timetei2$Region <- "Total"; timetei2 <- timetei2[c(1,3,2)]
+
+timetei3 <- rbind(timetei, timetei2)
+
+# Plotting TEI
+
+LINES <- c("Europe" = "solid", "Total" = "dashed", "North America" = "solid")
+
+tei <- ggplot(timetei3, mapping = aes(x = Year, y = tei_mean, linetype = Region)) +
+  geom_line(aes(color = Region), lwd = 1.8) + 
+  scale_linetype_manual(values = LINES) +
+  ylim(-0.0161, -0.34) +
+  scale_color_manual(values = c("darkred", "steelblue", "gray69")) +
+  labs(x = "Year", y = "TEI", title = "Yearly average TEI for Europe and North America", subtitle = "Lower TEI is worse. Note that the y-axis is flipped.") 
+
+tei + scale_x_continuous(breaks = c(2010:2019), labels = c(2010, "'11","'12","'13","'14","'15","'16","'17","'18","'19")) +theme(legend.position = "right") + guides(fill = guide_legend(reverse=TRUE))
+
+
+
+# Summarizing theasset data
+assetmean <- df %>% select(Year, Region, Assets) %>% group_by(Year, Region) %>% 
+  summarise(assets_mean = round(mean(Assets, na.rm = TRUE)))  %>%  
+  mutate(Region = case_when(grepl("0", Region) ~ "Europe",
+                            grepl("1", Region, ignore.case = TRUE) ~"North America"))
+
+assetsmean2 <- df %>% select(Year, Assets) %>% group_by(Year) %>% 
+  summarise(assets_mean = round(mean(Assets, na.rm = TRUE), 2))
+
+assetsmean2$Region <- "Total"; assetsmean2 <- assetsmean2[c(1,3,2)]
+
+assetmean3 <- rbind(assetmean, assetsmean2)
+
+# Plotting assets_mean
+
+ass <- ggplot(assetmean3, mapping = aes(x = Year, y = assets_mean/1000, linetype = Region)) +
+  geom_line(aes(color = Region), lwd = 2) + 
+  scale_linetype_manual(values = LINES) +
+  ylim(2850, 60000) +
+  scale_color_manual(values = c("darkred", "steelblue", "gray69")) +
+  labs(x = "Year", y = "Assets in $million", title = "Average assets for European and North American firms", subtitle = "") 
+ass + scale_x_continuous(breaks = c(2010:2019), labels = c(2010, "'11","'12","'13","'14","'15","'16","'17","'18","'19")) +theme(legend.position = "right")
+
+# Summarizing revenue data
+revmean <- df %>% select(Year, Region, Revenue) %>% group_by(Year, Region) %>% 
+  summarise(rev_mean = round(mean(Revenue, na.rm = TRUE)))  %>%  
+  mutate(Region = case_when(grepl("0", Region) ~ "Europe",
+                            grepl("1", Region, ignore.case = TRUE) ~"North America"))
+
+revmean2 <- df %>% select(Year, Revenue) %>% group_by(Year) %>% 
+  summarise(rev_mean = round(mean(Revenue, na.rm = TRUE), 2))
+
+revmean2$Region <- "Total"; revmean2 <- revmean2[c(1,3,2)]
+
+revmean3 <- rbind(revmean, revmean2)
+
+# Plotting revenue
+
+rev <- ggplot(revmean3, mapping = aes(x = Year, y = rev_mean/1000, linetype = Region)) +
+  geom_line(aes(color = Region), lwd = 2) + 
+  scale_linetype_manual(values = LINES) +
+  ylim(2380, 50000) +
+  scale_color_manual(values = c("darkred", "steelblue", "gray69")) +
+  labs(x = "Year", y = "Revenue in $million", title = "Average revenue for European and North American firms", subtitle = "") 
+rev + scale_x_continuous(breaks = c(2010:2019), labels = c(2010, "'11","'12","'13","'14","'15","'16","'17","'18","'19")) +theme(legend.position = "right")
+
+# Plotting ESG
+
+esg <- df %>% select(Year, Region, ESG) %>% group_by(Year, Region) %>% 
+  summarise(esg_mean = round(mean(ESG, na.rm = TRUE), 2))  %>%  
+  mutate(Region = case_when(grepl("0", Region) ~ "Europe",
+                            grepl("1", Region, ignore.case = TRUE) ~"North America"))
+
+esg <- ggplot(esg, mapping = aes(x = Year, y = esg_mean)) +
+  geom_line(aes(color = Region), lwd = 1.3) + 
+  ylim(0.38, 8) +
+  scale_color_manual(values = c("darkred", "steelblue")) +
+  labs(x = "Year", y = "Combined ESG", title = "Average Combined ESG", subtitle = "Incl. ESG Controversies score") +
+  scale_x_continuous(breaks = c(2010:2019), labels = c("'10", "'11","'12","'13","'14","'15","'16","'17","'18","'19"))
+
+
+esgenv <- df %>% select(Year, Region, Env.) %>% group_by(Year, Region) %>% 
+  summarise(env_mean = round(mean(Env., na.rm = TRUE), 2))  %>%  
+  mutate(Region = case_when(grepl("0", Region) ~ "Europe",
+                            grepl("1", Region, ignore.case = TRUE) ~"North America"))
+
+esgenv <- ggplot(esgenv, mapping = aes(x = Year, y = env_mean)) +
+  geom_line(aes(color = Region), lwd = 1.3) + 
+  ylim(0.38, 8) +
+  scale_color_manual(values = c("darkred", "steelblue")) +
+  labs(x = "Year", y = "Environmental Score", title = "Average Environmental", subtitle = "") +
+  scale_x_continuous(breaks = c(2010:2019), labels = c("'10", "'11","'12","'13","'14","'15","'16","'17","'18","'19"))
+
+esgsoc <- df %>% select(Year, Region, Soc.) %>% group_by(Year, Region) %>% 
+  summarise(soc_mean = round(mean(Soc., na.rm = TRUE), 2))  %>%  
+  mutate(Region = case_when(grepl("0", Region) ~ "Europe",
+                            grepl("1", Region, ignore.case = TRUE) ~"North America"))
+
+esgsoc <- ggplot(esgsoc, mapping = aes(x = Year, y = soc_mean)) +
+  geom_line(aes(color = Region), lwd = 1.3) + 
+  ylim(0.42, 9) +
+  scale_color_manual(values = c("darkred", "steelblue")) +
+  labs(x = "Year", y = "Social Score", title = "Average Social", subtitle = "") +
+  scale_x_continuous(breaks = c(2010:2019), labels = c("'10", "'11","'12","'13","'14","'15","'16","'17","'18","'19"))
+
+
+esggov <- df %>% select(Year, Region, Gov.) %>% group_by(Year, Region) %>% 
+  summarise(gov_mean = round(mean(Gov., na.rm = TRUE), 2))  %>%  
+  mutate(Region = case_when(grepl("0", Region) ~ "Europe",
+                            grepl("1", Region, ignore.case = TRUE) ~"North America"))
+
+esggov <- ggplot(esggov, mapping = aes(x = Year, y = gov_mean)) +
+  geom_line(aes(color = Region), lwd = 1.3) + 
+  ylim(0.42, 9) +
+  scale_color_manual(values = c("darkred", "steelblue")) +
+  labs(x = "Year", y = "Governance Score", title = "Average Governance", subtitle = "") +
+  scale_x_continuous(breaks = c(2010:2019), labels = c("'10", "'11","'12","'13","'14","'15","'16","'17","'18","'19"))
+
+### Plotting ESG in one
+
+ggarrange(esg, esgenv, esgsoc, esggov, ncol = 2, nrow = 2, common.legend = TRUE, legend="right")
+
+
+#### IBEC TRY
+
+rm(list = ls())
+
+IBEC <- read_csv("C:/Users/frede/Desktop/thesis/Final Dataset.csv",
+               col_types = cols(.default = col_guess()))
+
+IBEC <- IBEC[-c(86:105),]
+
+# Summarizing revenue data
+revmean <- IBEC %>% select(Year, EM, Total.Revenue) %>% group_by(Year, EM) %>% 
+  summarise(rev_mean = round(mean(Total.Revenue, na.rm = TRUE)))  %>%  
+  mutate(EM = case_when(grepl("0", EM) ~ "Developed",
+                            grepl("1", EM, ignore.case = TRUE) ~"Emerging"))
+
+revmean <- revmean[-c(1,40:41),]
+
+revmean2 <- IBEC %>% select(Year, Total.Revenue) %>% group_by(Year) %>% 
+  summarise(rev_mean = round(mean(Total.Revenue, na.rm = TRUE), 2))
+
+revmean2 <- revmean2[-c(1,21),]
+
+revmean2$EM <- "Total"; revmean2 <- revmean2[c(1,3,2)]
+
+revmean3 <- rbind(revmean, revmean2)
+
+
+
+IBEC2 <- read_csv("C:/Users/frede/Desktop/thesis/Graph Dataset.csv",
+               col_types = cols(.default = col_guess()))
+LINES <- c("Developed" = "dotted", "Total" = "dashed", "Emerging" = "dotted","Suzlon" = "solid","Goldwind" = "solid")
+
+rev <- ggplot(IBEC2, mapping = aes(x = Year, y = rev_mean, 
+                                      linetype = EM)) +
+  geom_line(aes(color = EM), lwd = 1.5) + 
+  scale_linetype_manual(values = LINES) +
+  #ylim(2380, 50000) +
+  scale_color_manual(values = c("darkred", "steelblue","darkgoldenrod2" ,"chartreuse3","gray69")) +
+  labs(x = "Year", y = "Revenue in $million", 
+       title = "Average wind turbine revenue for EMNCS and MNCs", subtitle = "") 
+rev + scale_x_continuous(breaks = c(2002:2020), 
+                         labels = c(2002,"'03","'04","'05","'06","'07","'08",
+                                    "'09","'10", "'11","'12","'13","'14","'15",
+                                    "'16","'17","'18","'19","'20")) +
+  theme(legend.position = "right")
+
+
+
+#write.csv(revmean3,"C:/Users/frede/Desktop/thesis/Graph Dataset.csv", row.names = FALSE)
+
+
+
+
+
+
+```
+
