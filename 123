@@ -1,0 +1,25 @@
+# R tips  
+
+This repository contains R programming tips covering topics across data cleaning, data visualisation, machine learning, statistical theory and data productionisation.  
+
+<p align="center">  
+<img src="https://github.com/erikaduan/r_tips/blob/master/figures/r_milestones.jpg"
+width="600"></center>  
+</p>  
+
+Many kudos to [Dr Chuanxin Liu](https://github.com/codetrainee), my former PhD student and code editor, for teaching me how to code in R in my past life as an immunologist.  
+
+
+# Content summary
+
+| Legend | Category |  
+|--------|----------|  
+| 📚 | Data cleaning |  
+| 🎨 | Data visualisation |  
+| 🔮 | Machine learning |  
+| 🔨 | Productionisation |  
+| 🔢 | Statistical theory |  
+
+
+# Tutorials  
+## 🎨 Data visualisation  
